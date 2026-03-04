@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Poids</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #f5f5f7;
+    --surface: #ffffff;
+    --border: rgba(0,0,0,0.06);
+    --text: #1d1d1f;
+    --text-secondary: #6e6e73;
+    --text-tertiary: #aeaeb2;
+    --accent: #0071e3;
+    --accent-light: #e8f0fb;
+    --green: #34c759;
+    --green-light: #e8f8ec;
+    --orange: #ff9500;
+    --orange-light: #fff4e6;
+    --red: #ff3b30;
+    --radius: 18px;
+    --radius-sm: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', -apple-system, sans-serif;
+    min-height: 100vh;
+    max-width: 430px;
+    margin: 0 auto;
+    padding-bottom: 60px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* HEADER */
+  .header {
+    padding: 60px 24px 20px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    background: rgba(245,245,247,0.85);
+  }
+
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 4px;
+  }
+
+  .greeting {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2rem;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+
+  .greeting em { font-style: italic; color: var(--accent); }
+
+  .streak-pill {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 7px 14px 7px 10px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    white-space: nowrap;
+    margin-top: 4px;
+  }
+
+  .streak-pill .num { font-weight: 600; color: var(--text); }
+  .subdate { font-size: 0.82rem; color: var(--text-tertiary); font-weight: 400; }
+
+  /* SECTION */
+  .section { padding: 6px 16px; }
+
+  /* CARD */
+  .card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.05);
+    margin-bottom: 10px;
+  }
+
+  .card-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    margin-bottom: 16px;
+  }
+
+  /* ENTRY */
+  .weight-display-area {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+
+  .weight-input {
+    background: transparent;
+    border: none;
+    outline: none;
+    font-family: 'DM Serif Display', serif;
+    font-size: 4.5rem;
+    font-weight: 400;
+    letter-spacing: -0.03em;
+    color: var(--text);
+    width: 100%;
+    line-height: 1;
+    caret-color: var(--accent);
+  }
+
+  .weight-input::placeholder { color: var(--text-tertiary); }
+
+  .weight-unit-label {
+    font-size: 1.4rem;
+    color: var(--text-tertiary);
+    font-weight: 300;
+    padding-bottom: 6px;
+    flex-shrink: 0;
+  }
+
+  .divider { height: 1px; background: var(--border); margin-bottom: 20px; }
+
+  .btn-log {
+    width: 100%;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    font-size: 1rem;
+    letter-spacing: -0.01em;
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.18s cubic-bezier(0.25,0.46,0.45,0.94);
+  }
+
+  .btn-log:active { transform: scale(0.97); background: #005bbf; }
+
+  .entry-hint {
+    text-align: center;
+    margin-top: 10px;
+    font-size: 0.78rem;
+    color: var(--text-tertiary);
+    min-height: 18px;
+    transition: all 0.3s;
+  }
+
+  /* STATS GRID */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.04);
+  }
+
+  .stat-icon {
+    width: 32px; height: 32px;
+    border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+    margin-bottom: 12px;
+  }
+
+  .stat-icon.blue { background: var(--accent-light); }
+  .stat-icon.green { background: var(--green-light); }
+
+  .stat-value {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.75rem;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .stat-value sup {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 400;
+    color: var(--text-secondary);
+  }
+
+  .stat-label-sm { font-size: 0.75rem; color: var(--text-secondary); }
+
+  .delta-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 0.72rem;
+    font-weight: 500;
+    padding: 3px 8px;
+    border-radius: 999px;
+    margin-top: 6px;
+  }
+
+  .delta-tag.up { background: var(--green-light); color: var(--green); }
+  .delta-tag.down { background: #ffecec; color: var(--red); }
+
+  /* CHART */
+  .chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+
+  .chart-title { font-size: 0.85rem; font-weight: 500; }
+
+  .chart-period { display: flex; gap: 4px; }
+
+  .period-btn {
+    background: none;
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--text-tertiary);
+    padding: 5px 10px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .period-btn.active { background: var(--accent-light); color: var(--accent); }
+
+  .chart-wrap { height: 200px; position: relative; }
+
+  /* PROGRESS RING */
+  .progress-ring-wrap { display: flex; align-items: center; gap: 20px; }
+
+  .ring-container {
+    position: relative;
+    flex-shrink: 0;
+    width: 80px; height: 80px;
+  }
+
+  .ring-svg { transform: rotate(-90deg); }
+  .ring-bg { fill: none; stroke: var(--bg); stroke-width: 7; }
+
+  .ring-fill {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 7;
+    stroke-linecap: round;
+    stroke-dasharray: 220;
+    stroke-dashoffset: 220;
+    transition: stroke-dashoffset 1s cubic-bezier(0.34,1.56,0.64,1);
+  }
+
+  .ring-text {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.1rem;
+    color: var(--text);
+  }
+
+  .progress-info { flex: 1; }
+  .progress-title { font-size: 0.85rem; font-weight: 500; margin-bottom: 4px; }
+  .progress-sub { font-size: 0.78rem; color: var(--text-secondary); line-height: 1.4; }
+  .progress-sub strong { color: var(--text); font-weight: 500; }
+
+  .input-row { display: flex; gap: 10px; margin-top: 16px; align-items: center; }
+
+  .inline-input {
+    flex: 1;
+    background: var(--bg);
+    border: 1.5px solid transparent;
+    border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    color: var(--text);
+    padding: 12px 16px;
+    outline: none;
+    transition: border-color 0.18s;
+    appearance: textfield;
+    -moz-appearance: textfield;
+  }
+
+  .inline-input::-webkit-inner-spin-button,
+  .inline-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+  .inline-input::placeholder { color: var(--text-tertiary); }
+  .inline-input:focus { border-color: var(--accent); background: #fff; }
+
+  .btn-set {
+    background: var(--text);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    font-size: 0.85rem;
+    padding: 12px 20px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .btn-set:active { transform: scale(0.96); opacity: 0.8; }
+
+  /* ÉVOLUTION TOTALE */
+  .evolution-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.04);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .evo-icon {
+    width: 48px; height: 48px;
+    border-radius: 14px;
+    background: var(--orange-light);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem;
+    flex-shrink: 0;
+  }
+
+  .evo-value {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2rem;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .evo-label { font-size: 0.78rem; color: var(--text-secondary); }
+
+  /* HISTORY */
+  .history-item {
+    display: flex;
+    align-items: center;
+    padding: 13px 0;
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity:0; transform:translateY(5px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+
+  .history-item:last-child { border-bottom: none; }
+
+  .hist-date-col { flex-shrink:0; width:48px; }
+  .hist-day { font-size:1.1rem; font-weight:600; line-height:1; }
+  .hist-month { font-size:0.68rem; color:var(--text-tertiary); text-transform:uppercase; letter-spacing:0.05em; margin-top:2px; }
+  .hist-bar-col { flex:1; }
+
+  .hist-mini-bar { background:var(--bg); border-radius:999px; height:4px; overflow:hidden; }
+  .hist-mini-fill { height:100%; border-radius:999px; background:linear-gradient(90deg,var(--accent-light),var(--accent)); }
+
+  .hist-weight {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.3rem;
+    flex-shrink: 0;
+    text-align: right;
+    min-width: 68px;
+  }
+
+  .hist-delta { flex-shrink:0; min-width:46px; text-align:right; }
+
+  .btn-del {
+    background: none; border: none;
+    color: var(--text-tertiary);
+    font-size: 1rem; cursor: pointer;
+    padding: 4px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s; flex-shrink:0;
+    width: 28px; height: 28px;
+  }
+
+  .btn-del:active { background:#ffecec; color:var(--red); }
+
+  .empty-state {
+    text-align:center; padding:36px 0;
+    color:var(--text-tertiary); font-size:0.85rem; line-height:1.6;
+  }
+
+  .empty-state .icon { font-size:2.5rem; margin-bottom:10px; }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 32px; left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    opacity: 0;
+    background: rgba(29,29,31,0.92);
+    color: #fff;
+    font-size: 0.82rem; font-weight: 500;
+    padding: 12px 22px;
+    border-radius: 999px;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 999;
+    transition: all 0.35s cubic-bezier(0.34,1.56,0.64,1);
+  }
+
+  .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+  .section-title {
+    font-size:1.1rem; font-weight:600; letter-spacing:-0.01em;
+    padding: 12px 24px 4px;
+    color: var(--text-secondary);
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-top">
+    <div class="greeting">Bonjour,<br><em>Maxime</em></div>
+    <div class="streak-pill">🔥 <span class="num" id="streakNum">0</span> jour</div>
+  </div>
+  <div class="subdate" id="subdate"></div>
+</div>
+
+<!-- LOG -->
+<div class="section">
+  <div class="card">
+    <div class="card-label">Poids du jour</div>
+    <div class="weight-display-area">
+      <input
+        type="text"
+        inputmode="decimal"
+        class="weight-input"
+        id="weightInput"
+        placeholder="72,5"
+        autocomplete="off"
+        autocorrect="off"
+        spellcheck="false"
+      />
+      <span class="weight-unit-label">kg</span>
+    </div>
+    <div class="divider"></div>
+    <button class="btn-log" id="btnLog">Enregistrer</button>
+    <div class="entry-hint" id="entryHint"></div>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="section">
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon blue">⚖️</div>
+      <div class="stat-value" id="statLast">—</div>
+      <div class="stat-label-sm">Dernier poids</div>
+      <div id="statLastDelta"></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon green">📊</div>
+      <div class="stat-value" id="statWeekly">—</div>
+      <div class="stat-label-sm">Moy. 7 jours</div>
+    </div>
+  </div>
+</div>
+
+<!-- OBJECTIF -->
+<div class="section">
+  <div class="card">
+    <div class="card-label">Objectif de poids</div>
+    <div class="progress-ring-wrap">
+      <div class="ring-container">
+        <svg class="ring-svg" width="80" height="80" viewBox="0 0 80 80">
+          <circle class="ring-bg" cx="40" cy="40" r="35"/>
+          <circle class="ring-fill" id="ringFill" cx="40" cy="40" r="35"/>
+        </svg>
+        <div class="ring-text" id="ringPct">—</div>
+      </div>
+      <div class="progress-info">
+        <div class="progress-title" id="progressTitle">Définis ton objectif</div>
+        <div class="progress-sub" id="progressSub">Indique ton poids cible pour suivre ta progression.</div>
+      </div>
+    </div>
+    <div class="input-row">
+      <input type="number" class="inline-input" id="targetInput" placeholder="Objectif en kg" min="20" max="300" step="0.1" inputmode="decimal"/>
+      <button class="btn-set" onclick="setTarget()">Définir</button>
+    </div>
+  </div>
+</div>
+
+<!-- GRAPHIQUE -->
+<div class="section">
+  <div class="card">
+    <div class="chart-header">
+      <div class="chart-title">Évolution du poids</div>
+      <div class="chart-period">
+        <button class="period-btn" onclick="setPeriod(7,this)">7j</button>
+        <button class="period-btn active" onclick="setPeriod(30,this)">30j</button>
+        <button class="period-btn" onclick="setPeriod(0,this)">Tout</button>
+      </div>
+    </div>
+    <div class="chart-wrap"><canvas id="weightChart"></canvas></div>
+  </div>
+</div>
+
+<!-- ÉVOLUTION TOTALE -->
+<div class="section">
+  <div class="evolution-card">
+    <div class="evo-icon">📈</div>
+    <div>
+      <div class="evo-value" id="evoValue">—</div>
+      <div class="evo-label" id="evoLabel">Évolution totale</div>
+    </div>
+  </div>
+</div>
+
+<!-- HISTORIQUE -->
+<div class="section-title">Historique</div>
+<div class="section">
+  <div class="card" style="padding:20px 24px">
+    <div id="historyList"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const KEY = 'mass_v2';
+function load() {
+  try { return JSON.parse(localStorage.getItem(KEY)) || {entries:[],target:null}; }
+  catch { return {entries:[],target:null}; }
+}
+function save() { localStorage.setItem(KEY, JSON.stringify(data)); }
+
+let data = load();
+let chartPeriod = 30;
+let chartInst = null;
+
+const fmt = (n, d=1) => (n===null||n===undefined||isNaN(n)) ? '—' : Number(n).toFixed(d);
+const today = () => new Date().toISOString().split('T')[0];
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+function hint(msg, ok=true) {
+  const el = document.getElementById('entryHint');
+  el.textContent = msg;
+  el.style.color = ok ? 'var(--green)' : 'var(--red)';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.textContent=''; }, 3000);
+}
+
+function calcStreak() {
+  const s = [...data.entries].sort((a,b)=>b.date.localeCompare(a.date));
+  if (!s.length) return 0;
+  let streak=0, ref=new Date(); ref.setHours(0,0,0,0);
+  for (const e of s) {
+    const d = new Date(e.date+'T00:00:00');
+    const diff = Math.round((ref-d)/86400000);
+    if (diff > streak) break;
+    streak++; ref=d;
+  }
+  return streak;
+}
+
+// ── INPUT: accept digits, comma and dot only ──────────
+const weightInput = document.getElementById('weightInput');
+
+weightInput.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') { logWeight(); return; }
+  // Allow: backspace, delete, arrows, tab
+  if (['Backspace','Delete','ArrowLeft','ArrowRight','Tab','Home','End'].includes(e.key)) return;
+  // Allow digits
+  if (/^\d$/.test(e.key)) return;
+  // Allow one separator (comma or dot)
+  if ((e.key === ',' || e.key === '.') && !this.value.includes('.') && !this.value.includes(',')) return;
+  // Block everything else
+  e.preventDefault();
+});
+
+// Normalize comma → dot for parsing, but keep comma visible
+weightInput.addEventListener('input', function() {
+  // Remove anything that's not a digit, comma or dot
+  let v = this.value.replace(/[^\d.,]/g, '');
+  // Only keep first separator
+  let firstSep = v.search(/[.,]/);
+  if (firstSep !== -1) {
+    let before = v.slice(0, firstSep + 1);
+    let after = v.slice(firstSep + 1).replace(/[.,]/g, '');
+    v = before + after;
+  }
+  if (this.value !== v) this.value = v;
+});
+
+function getWeightValue() {
+  return parseFloat(weightInput.value.replace(',', '.'));
+}
+
+function logWeight() {
+  const val = getWeightValue();
+  if (isNaN(val) || val < 20 || val > 300) { hint('Valeur invalide (20–300 kg)', false); return; }
+  const t = today();
+  const idx = data.entries.findIndex(e => e.date === t);
+  if (idx >= 0) { data.entries[idx].weight = val; hint(`Mis à jour : ${fmt(val)} kg`); }
+  else { data.entries.push({date:t, weight:val}); hint(`${fmt(val)} kg enregistré ✓`); }
+  save();
+  weightInput.value = '';
+  render();
+  toast(`${fmt(val)} kg enregistré`);
+}
+
+function setTarget() {
+  const val = parseFloat(document.getElementById('targetInput').value.replace(',','.'));
+  if (isNaN(val) || val < 20 || val > 300) return;
+  data.target = val; save(); render();
+  toast(`Objectif : ${fmt(val)} kg`);
+}
+
+function deleteEntry(date) {
+  data.entries = data.entries.filter(e => e.date !== date);
+  save(); render();
+  toast('Entrée supprimée');
+}
+
+function setPeriod(n, btn) {
+  chartPeriod = n;
+  document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderChart();
+}
+
+function renderChart() {
+  const sorted = [...data.entries].sort((a,b) => a.date.localeCompare(b.date));
+  let filtered = sorted;
+  if (chartPeriod > 0) {
+    const cut = new Date(); cut.setDate(cut.getDate() - chartPeriod);
+    filtered = sorted.filter(e => new Date(e.date+'T00:00:00') >= cut);
+  }
+  const ctx = document.getElementById('weightChart').getContext('2d');
+  if (chartInst) { chartInst.destroy(); chartInst = null; }
+  if (!filtered.length) return;
+
+  const labels = filtered.map(e => {
+    const d = new Date(e.date+'T00:00:00');
+    return d.toLocaleDateString('fr-FR', {day:'numeric', month:'short'});
+  });
+  const vals = filtered.map(e => e.weight);
+  const avg = vals.map((v,i) => {
+    const s = vals.slice(Math.max(0,i-2), i+1);
+    return s.reduce((a,b)=>a+b,0)/s.length;
+  });
+
+  chartInst = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          data: vals,
+          borderColor: 'rgba(0,113,227,0.25)',
+          backgroundColor: 'transparent',
+          pointBackgroundColor: '#0071e3',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          pointRadius: 4,
+          borderWidth: 1.5,
+          tension: 0.35,
+        },
+        {
+          data: avg,
+          borderColor: '#0071e3',
+          backgroundColor: 'rgba(0,113,227,0.06)',
+          fill: true,
+          pointRadius: 0,
+          borderWidth: 2.5,
+          tension: 0.45,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode:'index', intersect:false },
+      plugins: {
+        legend: { display:false },
+        tooltip: {
+          backgroundColor: 'rgba(255,255,255,0.96)',
+          borderColor: 'rgba(0,0,0,0.08)',
+          borderWidth: 1,
+          titleColor: '#6e6e73',
+          bodyColor: '#1d1d1f',
+          padding: 10,
+          cornerRadius: 10,
+          titleFont: { family:'DM Sans', size:11 },
+          bodyFont: { family:'DM Serif Display', size:16 },
+          callbacks: { label: c => ` ${fmt(c.raw)} kg` }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display:false },
+          border: { display:false },
+          ticks: { color:'#aeaeb2', font:{family:'DM Sans',size:10}, maxTicksLimit:6 }
+        },
+        y: {
+          min: Math.min(...vals) - 0.5,
+          max: Math.max(...vals) + 0.5,
+          grid: { color:'rgba(0,0,0,0.04)' },
+          border: { display:false },
+          ticks: { color:'#aeaeb2', font:{family:'DM Sans',size:10}, callback: v=>v.toFixed(1)+' kg', maxTicksLimit:4 }
+        }
+      }
+    }
+  });
+}
+
+function render() {
+  const sorted = [...data.entries].sort((a,b) => a.date.localeCompare(b.date));
+
+  // Date
+  const now = new Date();
+  document.getElementById('subdate').textContent =
+    now.toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'long'});
+
+  // Streak
+  document.getElementById('streakNum').textContent = calcStreak();
+
+  // Last weight
+  if (sorted.length) {
+    const last = sorted[sorted.length-1].weight;
+    document.getElementById('statLast').innerHTML = `${fmt(last)}<sup> kg</sup>`;
+    if (sorted.length >= 2) {
+      const prev = sorted[sorted.length-2].weight;
+      const d = last - prev;
+      const sign = d >= 0 ? '+' : '';
+      const cls = d >= 0 ? 'up' : 'down';
+      document.getElementById('statLastDelta').innerHTML =
+        `<div class="delta-tag ${cls}">${sign}${fmt(d)} kg</div>`;
+    } else document.getElementById('statLastDelta').innerHTML = '';
+  } else {
+    document.getElementById('statLast').innerHTML = '—';
+    document.getElementById('statLastDelta').innerHTML = '';
+  }
+
+  // Weekly avg
+  const cut7 = new Date(); cut7.setDate(cut7.getDate()-7);
+  const week = sorted.filter(e => new Date(e.date+'T00:00:00') >= cut7);
+  if (week.length) {
+    const avg = week.reduce((s,e)=>s+e.weight,0)/week.length;
+    document.getElementById('statWeekly').innerHTML = `${fmt(avg)}<sup> kg</sup>`;
+  } else document.getElementById('statWeekly').innerHTML = '—';
+
+  // Évolution totale (bottom card)
+  if (sorted.length >= 2) {
+    const delta = sorted[sorted.length-1].weight - sorted[0].weight;
+    const sign = delta >= 0 ? '+' : '';
+    const color = delta >= 0 ? 'var(--green)' : 'var(--red)';
+    document.getElementById('evoValue').innerHTML =
+      `<span style="color:${color}">${sign}${fmt(delta)} kg</span>`;
+    document.getElementById('evoLabel').textContent = `Depuis le début · ${sorted.length} mesures`;
+  } else {
+    document.getElementById('evoValue').innerHTML = '—';
+    document.getElementById('evoLabel').textContent = 'Évolution totale';
+  }
+
+  // Target ring
+  if (data.target) {
+    document.getElementById('targetInput').value = data.target;
+    if (sorted.length) {
+      const start = sorted[0].weight, last = sorted[sorted.length-1].weight;
+      const total = data.target - start, done = last - start;
+      const pct = total !== 0 ? Math.min(100, Math.max(0, (done/total)*100)) : 100;
+      document.getElementById('ringFill').style.strokeDashoffset = 220 - (220*pct/100);
+      document.getElementById('ringPct').textContent = Math.round(pct) + '%';
+      const rem = Math.abs(data.target - last);
+      document.getElementById('progressTitle').textContent = 'En bonne voie 💪';
+      document.getElementById('progressSub').innerHTML =
+        `Objectif <strong>${fmt(data.target)} kg</strong> — encore <strong>${fmt(rem)} kg</strong>`;
+    } else {
+      document.getElementById('ringFill').style.strokeDashoffset = 220;
+      document.getElementById('ringPct').textContent = '0%';
+      document.getElementById('progressTitle').textContent = `Objectif : ${fmt(data.target)} kg`;
+      document.getElementById('progressSub').textContent = 'Commence à logger pour voir ta progression.';
+    }
+  } else {
+    document.getElementById('ringFill').style.strokeDashoffset = 220;
+    document.getElementById('ringPct').textContent = '—';
+    document.getElementById('progressTitle').textContent = 'Définis ton objectif';
+    document.getElementById('progressSub').textContent = 'Indique ton poids cible pour suivre ta progression.';
+  }
+
+  // Chart
+  renderChart();
+
+  // History
+  const hist = [...data.entries].sort((a,b) => b.date.localeCompare(a.date));
+  const list = document.getElementById('historyList');
+
+  if (!hist.length) {
+    list.innerHTML = `<div class="empty-state"><div class="icon">📋</div>Aucune entrée pour l'instant.<br>Commence à logger ton poids !</div>`;
+    return;
+  }
+
+  const weights = hist.map(e=>e.weight);
+  const minW = Math.min(...weights), maxW = Math.max(...weights);
+
+  list.innerHTML = hist.map((e,i) => {
+    const d = new Date(e.date+'T00:00:00');
+    const day = d.getDate();
+    const month = d.toLocaleDateString('fr-FR',{month:'short'}).replace('.','');
+    const prev = hist[i+1];
+    let deltaHtml = '';
+    if (prev) {
+      const diff = e.weight - prev.weight;
+      const sign = diff >= 0 ? '+' : '';
+      const color = diff >= 0 ? 'var(--green)' : 'var(--red)';
+      deltaHtml = `<div style="font-size:0.72rem;font-weight:500;color:${color}">${sign}${fmt(diff)}</div>`;
+    }
+    const pct = maxW === minW ? 50 : ((e.weight-minW)/(maxW-minW))*100;
+    return `<div class="history-item">
+      <div class="hist-date-col">
+        <div class="hist-day">${day}</div>
+        <div class="hist-month">${month}</div>
+      </div>
+      <div class="hist-bar-col">
+        <div class="hist-mini-bar"><div class="hist-mini-fill" style="width:${pct}%"></div></div>
+      </div>
+      <div class="hist-weight">${fmt(e.weight)} <span style="font-family:'DM Sans';font-size:0.75rem;color:var(--text-secondary)">kg</span></div>
+      <div class="hist-delta">${deltaHtml}</div>
+      <button class="btn-del" onclick="deleteEntry('${e.date}')">✕</button>
+    </div>`;
+  }).join('');
+}
+
+document.getElementById('btnLog').addEventListener('click', logWeight);
+
+document.getElementById('targetInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') setTarget();
+});
+
+render();
+</script>
+</body>
+</html>
