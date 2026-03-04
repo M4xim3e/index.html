@@ -8,6 +8,7 @@
 <title>Poids</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root {
     --bg: #f5f5f7;
@@ -39,6 +40,37 @@
     margin: 0 auto;
     padding-bottom: 60px;
     -webkit-font-smoothing: antialiased;
+  }
+
+  /* LOADING OVERLAY */
+  .loading-overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    gap: 16px;
+    transition: opacity 0.4s;
+  }
+
+  .loading-overlay.hidden { opacity: 0; pointer-events: none; }
+
+  .spinner {
+    width: 32px; height: 32px;
+    border: 2.5px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-text {
+    font-size: 0.82rem;
+    color: var(--text-tertiary);
   }
 
   /* HEADER */
@@ -86,12 +118,10 @@
   }
 
   .streak-pill .num { font-weight: 600; color: var(--text); }
-  .subdate { font-size: 0.82rem; color: var(--text-tertiary); font-weight: 400; }
+  .subdate { font-size: 0.82rem; color: var(--text-tertiary); }
 
-  /* SECTION */
   .section { padding: 6px 16px; }
 
-  /* CARD */
   .card {
     background: var(--surface);
     border-radius: var(--radius);
@@ -152,13 +182,29 @@
     font-family: 'DM Sans', sans-serif;
     font-weight: 500;
     font-size: 1rem;
-    letter-spacing: -0.01em;
     padding: 16px;
     cursor: pointer;
     transition: all 0.18s cubic-bezier(0.25,0.46,0.45,0.94);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
   }
 
   .btn-log:active { transform: scale(0.97); background: #005bbf; }
+  .btn-log:disabled { opacity: 0.5; pointer-events: none; }
+
+  .btn-spinner {
+    width: 16px; height: 16px;
+    border: 2px solid rgba(255,255,255,0.4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    display: none;
+  }
+
+  .btn-log.loading .btn-spinner { display: block; }
+  .btn-log.loading .btn-label { opacity: 0.6; }
 
   .entry-hint {
     text-align: center;
@@ -166,10 +212,9 @@
     font-size: 0.78rem;
     color: var(--text-tertiary);
     min-height: 18px;
-    transition: all 0.3s;
   }
 
-  /* STATS GRID */
+  /* STATS */
   .stats-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -216,7 +261,6 @@
   .delta-tag {
     display: inline-flex;
     align-items: center;
-    gap: 3px;
     font-size: 0.72rem;
     font-weight: 500;
     padding: 3px 8px;
@@ -236,7 +280,6 @@
   }
 
   .chart-title { font-size: 0.85rem; font-weight: 500; }
-
   .chart-period { display: flex; gap: 4px; }
 
   .period-btn {
@@ -253,18 +296,12 @@
   }
 
   .period-btn.active { background: var(--accent-light); color: var(--accent); }
-
   .chart-wrap { height: 200px; position: relative; }
 
   /* PROGRESS RING */
   .progress-ring-wrap { display: flex; align-items: center; gap: 20px; }
 
-  .ring-container {
-    position: relative;
-    flex-shrink: 0;
-    width: 80px; height: 80px;
-  }
-
+  .ring-container { position: relative; flex-shrink: 0; width: 80px; height: 80px; }
   .ring-svg { transform: rotate(-90deg); }
   .ring-bg { fill: none; stroke: var(--bg); stroke-width: 7; }
 
@@ -283,7 +320,6 @@
     display: flex; align-items: center; justify-content: center;
     font-family: 'DM Serif Display', serif;
     font-size: 1.1rem;
-    color: var(--text);
   }
 
   .progress-info { flex: 1; }
@@ -329,7 +365,7 @@
 
   .btn-set:active { transform: scale(0.96); opacity: 0.8; }
 
-  /* ÉVOLUTION TOTALE */
+  /* ÉVOLUTION */
   .evolution-card {
     background: var(--surface);
     border-radius: var(--radius);
@@ -370,10 +406,7 @@
     animation: fadeIn 0.3s ease;
   }
 
-  @keyframes fadeIn {
-    from { opacity:0; transform:translateY(5px); }
-    to   { opacity:1; transform:translateY(0); }
-  }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:translateY(0); } }
 
   .history-item:last-child { border-bottom: none; }
 
@@ -381,7 +414,6 @@
   .hist-day { font-size:1.1rem; font-weight:600; line-height:1; }
   .hist-month { font-size:0.68rem; color:var(--text-tertiary); text-transform:uppercase; letter-spacing:0.05em; margin-top:2px; }
   .hist-bar-col { flex:1; }
-
   .hist-mini-bar { background:var(--bg); border-radius:999px; height:4px; overflow:hidden; }
   .hist-mini-fill { height:100%; border-radius:999px; background:linear-gradient(90deg,var(--accent-light),var(--accent)); }
 
@@ -434,6 +466,7 @@
   }
 
   .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+  .toast.error { background: rgba(255,59,48,0.92); }
 
   .section-title {
     font-size:1.1rem; font-weight:600; letter-spacing:-0.01em;
@@ -443,6 +476,12 @@
 </style>
 </head>
 <body>
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-text">Chargement…</div>
+</div>
 
 <!-- HEADER -->
 <div class="header">
@@ -458,20 +497,15 @@
   <div class="card">
     <div class="card-label">Poids du jour</div>
     <div class="weight-display-area">
-      <input
-        type="text"
-        inputmode="decimal"
-        class="weight-input"
-        id="weightInput"
-        placeholder="72,5"
-        autocomplete="off"
-        autocorrect="off"
-        spellcheck="false"
-      />
+      <input type="text" inputmode="decimal" class="weight-input" id="weightInput"
+        placeholder="72,5" autocomplete="off" autocorrect="off" spellcheck="false"/>
       <span class="weight-unit-label">kg</span>
     </div>
     <div class="divider"></div>
-    <button class="btn-log" id="btnLog">Enregistrer</button>
+    <button class="btn-log" id="btnLog">
+      <div class="btn-spinner"></div>
+      <span class="btn-label">Enregistrer</span>
+    </button>
     <div class="entry-hint" id="entryHint"></div>
   </div>
 </div>
@@ -551,29 +585,32 @@
   </div>
 </div>
 
-<div class="toast" id="toast"></div>
+<div class="toast" id="toastEl"></div>
 
 <script>
-const KEY = 'mass_v2';
-function load() {
-  try { return JSON.parse(localStorage.getItem(KEY)) || {entries:[],target:null}; }
-  catch { return {entries:[],target:null}; }
-}
-function save() { localStorage.setItem(KEY, JSON.stringify(data)); }
+// ── SUPABASE ──────────────────────────────────────────
+const SUPABASE_URL = 'https://wdfdkfohvvawxusggigh.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndkZmRrZm9odnZhd3h1c2dnaWdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1OTc2MjIsImV4cCI6MjA4ODE3MzYyMn0.pu6OAA_DOxuM4qC1FEi3H-o7j-_2o34OEA7BknMnau8';
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let data = load();
+// ── STATE ─────────────────────────────────────────────
+let entries = [];   // { id, date, weight }
+let target = null;
 let chartPeriod = 30;
 let chartInst = null;
 
+// ── UTILS ─────────────────────────────────────────────
 const fmt = (n, d=1) => (n===null||n===undefined||isNaN(n)) ? '—' : Number(n).toFixed(d);
 const today = () => new Date().toISOString().split('T')[0];
 
-function toast(msg) {
-  const el = document.getElementById('toast');
+function toast(msg, isError=false) {
+  const el = document.getElementById('toastEl');
   el.textContent = msg;
+  el.className = 'toast' + (isError ? ' error' : '');
   el.classList.add('show');
   clearTimeout(el._t);
-  el._t = setTimeout(() => el.classList.remove('show'), 2200);
+  el._t = setTimeout(() => el.classList.remove('show'), 2400);
 }
 
 function hint(msg, ok=true) {
@@ -581,11 +618,11 @@ function hint(msg, ok=true) {
   el.textContent = msg;
   el.style.color = ok ? 'var(--green)' : 'var(--red)';
   clearTimeout(el._t);
-  el._t = setTimeout(() => { el.textContent=''; }, 3000);
+  el._t = setTimeout(() => el.textContent='', 3000);
 }
 
 function calcStreak() {
-  const s = [...data.entries].sort((a,b)=>b.date.localeCompare(a.date));
+  const s = [...entries].sort((a,b)=>b.date.localeCompare(a.date));
   if (!s.length) return 0;
   let streak=0, ref=new Date(); ref.setHours(0,0,0,0);
   for (const e of s) {
@@ -597,164 +634,198 @@ function calcStreak() {
   return streak;
 }
 
-// ── INPUT: accept digits, comma and dot only ──────────
-const weightInput = document.getElementById('weightInput');
+// ── SUPABASE CRUD ─────────────────────────────────────
+async function loadAll() {
+  const [{ data: rows }, { data: settings }] = await Promise.all([
+    db.from('weight_entries').select('*').order('date', { ascending: true }),
+    db.from('settings').select('*')
+  ]);
+  entries = rows || [];
+  const targetSetting = (settings||[]).find(s=>s.key==='target');
+  target = targetSetting ? parseFloat(targetSetting.value) : null;
+}
 
-weightInput.addEventListener('keydown', function(e) {
-  if (e.key === 'Enter') { logWeight(); return; }
-  // Allow: backspace, delete, arrows, tab
-  if (['Backspace','Delete','ArrowLeft','ArrowRight','Tab','Home','End'].includes(e.key)) return;
-  // Allow digits
-  if (/^\d$/.test(e.key)) return;
-  // Allow one separator (comma or dot)
-  if ((e.key === ',' || e.key === '.') && !this.value.includes('.') && !this.value.includes(',')) return;
-  // Block everything else
-  e.preventDefault();
-});
-
-// Normalize comma → dot for parsing, but keep comma visible
-weightInput.addEventListener('input', function() {
-  // Remove anything that's not a digit, comma or dot
-  let v = this.value.replace(/[^\d.,]/g, '');
-  // Only keep first separator
-  let firstSep = v.search(/[.,]/);
-  if (firstSep !== -1) {
-    let before = v.slice(0, firstSep + 1);
-    let after = v.slice(firstSep + 1).replace(/[.,]/g, '');
-    v = before + after;
+async function saveEntry(date, weight) {
+  const existing = entries.find(e=>e.date===date);
+  if (existing) {
+    const { error } = await db.from('weight_entries')
+      .update({ weight })
+      .eq('date', date);
+    if (error) throw error;
+    existing.weight = weight;
+  } else {
+    const { data, error } = await db.from('weight_entries')
+      .insert({ date, weight })
+      .select()
+      .single();
+    if (error) throw error;
+    entries.push(data);
+    entries.sort((a,b)=>a.date.localeCompare(b.date));
   }
-  if (this.value !== v) this.value = v;
-});
-
-function getWeightValue() {
-  return parseFloat(weightInput.value.replace(',', '.'));
 }
 
-function logWeight() {
-  const val = getWeightValue();
-  if (isNaN(val) || val < 20 || val > 300) { hint('Valeur invalide (20–300 kg)', false); return; }
-  const t = today();
-  const idx = data.entries.findIndex(e => e.date === t);
-  if (idx >= 0) { data.entries[idx].weight = val; hint(`Mis à jour : ${fmt(val)} kg`); }
-  else { data.entries.push({date:t, weight:val}); hint(`${fmt(val)} kg enregistré ✓`); }
-  save();
-  weightInput.value = '';
-  render();
-  toast(`${fmt(val)} kg enregistré`);
+async function removeEntry(date) {
+  const { error } = await db.from('weight_entries').delete().eq('date', date);
+  if (error) throw error;
+  entries = entries.filter(e=>e.date!==date);
 }
 
-function setTarget() {
+async function saveSetting(key, value) {
+  const { error } = await db.from('settings')
+    .upsert({ key, value: String(value), updated_at: new Date().toISOString() });
+  if (error) throw error;
+}
+
+// ── ACTIONS ───────────────────────────────────────────
+async function logWeight() {
+  const raw = document.getElementById('weightInput').value.replace(',','.');
+  const val = parseFloat(raw);
+  if (isNaN(val)||val<20||val>300) { hint('Valeur invalide (20–300 kg)', false); return; }
+
+  const btn = document.getElementById('btnLog');
+  btn.classList.add('loading');
+  btn.disabled = true;
+
+  try {
+    const t = today();
+    const wasUpdate = entries.some(e=>e.date===t);
+    await saveEntry(t, val);
+    document.getElementById('weightInput').value = '';
+    hint(wasUpdate ? `Mis à jour : ${fmt(val)} kg` : `${fmt(val)} kg enregistré ✓`);
+    toast(`${fmt(val)} kg enregistré`);
+    render();
+  } catch(e) {
+    toast('Erreur de sauvegarde', true);
+    console.error(e);
+  } finally {
+    btn.classList.remove('loading');
+    btn.disabled = false;
+  }
+}
+
+async function setTarget() {
   const val = parseFloat(document.getElementById('targetInput').value.replace(',','.'));
-  if (isNaN(val) || val < 20 || val > 300) return;
-  data.target = val; save(); render();
-  toast(`Objectif : ${fmt(val)} kg`);
+  if (isNaN(val)||val<20||val>300) return;
+  try {
+    await saveSetting('target', val);
+    target = val;
+    render();
+    toast(`Objectif : ${fmt(val)} kg`);
+  } catch(e) {
+    toast('Erreur de sauvegarde', true);
+  }
 }
 
-function deleteEntry(date) {
-  data.entries = data.entries.filter(e => e.date !== date);
-  save(); render();
-  toast('Entrée supprimée');
+async function deleteEntry(date) {
+  try {
+    await removeEntry(date);
+    render();
+    toast('Entrée supprimée');
+  } catch(e) {
+    toast('Erreur de suppression', true);
+  }
 }
 
 function setPeriod(n, btn) {
   chartPeriod = n;
-  document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   renderChart();
 }
 
+// ── CHART ─────────────────────────────────────────────
 function renderChart() {
-  const sorted = [...data.entries].sort((a,b) => a.date.localeCompare(b.date));
+  const sorted = [...entries].sort((a,b)=>a.date.localeCompare(b.date));
   let filtered = sorted;
   if (chartPeriod > 0) {
-    const cut = new Date(); cut.setDate(cut.getDate() - chartPeriod);
-    filtered = sorted.filter(e => new Date(e.date+'T00:00:00') >= cut);
+    const cut = new Date(); cut.setDate(cut.getDate()-chartPeriod);
+    filtered = sorted.filter(e=>new Date(e.date+'T00:00:00')>=cut);
   }
   const ctx = document.getElementById('weightChart').getContext('2d');
-  if (chartInst) { chartInst.destroy(); chartInst = null; }
+  if (chartInst) { chartInst.destroy(); chartInst=null; }
   if (!filtered.length) return;
 
-  const labels = filtered.map(e => {
-    const d = new Date(e.date+'T00:00:00');
-    return d.toLocaleDateString('fr-FR', {day:'numeric', month:'short'});
+  const labels = filtered.map(e=>{
+    const d=new Date(e.date+'T00:00:00');
+    return d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
   });
-  const vals = filtered.map(e => e.weight);
-  const avg = vals.map((v,i) => {
-    const s = vals.slice(Math.max(0,i-2), i+1);
+  const vals = filtered.map(e=>e.weight);
+  const avg = vals.map((v,i)=>{
+    const s=vals.slice(Math.max(0,i-2),i+1);
     return s.reduce((a,b)=>a+b,0)/s.length;
   });
 
   chartInst = new Chart(ctx, {
-    type: 'line',
-    data: {
+    type:'line',
+    data:{
       labels,
-      datasets: [
+      datasets:[
         {
-          data: vals,
-          borderColor: 'rgba(0,113,227,0.25)',
-          backgroundColor: 'transparent',
-          pointBackgroundColor: '#0071e3',
-          pointBorderColor: '#fff',
-          pointBorderWidth: 2,
-          pointRadius: 4,
-          borderWidth: 1.5,
-          tension: 0.35,
+          data:vals,
+          borderColor:'rgba(0,113,227,0.25)',
+          backgroundColor:'transparent',
+          pointBackgroundColor:'#0071e3',
+          pointBorderColor:'#fff',
+          pointBorderWidth:2,
+          pointRadius:4,
+          borderWidth:1.5,
+          tension:0.35,
         },
         {
-          data: avg,
-          borderColor: '#0071e3',
-          backgroundColor: 'rgba(0,113,227,0.06)',
-          fill: true,
-          pointRadius: 0,
-          borderWidth: 2.5,
-          tension: 0.45,
+          data:avg,
+          borderColor:'#0071e3',
+          backgroundColor:'rgba(0,113,227,0.06)',
+          fill:true,
+          pointRadius:0,
+          borderWidth:2.5,
+          tension:0.45,
         }
       ]
     },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { mode:'index', intersect:false },
-      plugins: {
-        legend: { display:false },
-        tooltip: {
-          backgroundColor: 'rgba(255,255,255,0.96)',
-          borderColor: 'rgba(0,0,0,0.08)',
-          borderWidth: 1,
-          titleColor: '#6e6e73',
-          bodyColor: '#1d1d1f',
-          padding: 10,
-          cornerRadius: 10,
-          titleFont: { family:'DM Sans', size:11 },
-          bodyFont: { family:'DM Serif Display', size:16 },
-          callbacks: { label: c => ` ${fmt(c.raw)} kg` }
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'rgba(255,255,255,0.96)',
+          borderColor:'rgba(0,0,0,0.08)',
+          borderWidth:1,
+          titleColor:'#6e6e73',
+          bodyColor:'#1d1d1f',
+          padding:10,
+          cornerRadius:10,
+          titleFont:{family:'DM Sans',size:11},
+          bodyFont:{family:'DM Serif Display',size:16},
+          callbacks:{label:c=>` ${fmt(c.raw)} kg`}
         }
       },
-      scales: {
-        x: {
-          grid: { display:false },
-          border: { display:false },
-          ticks: { color:'#aeaeb2', font:{family:'DM Sans',size:10}, maxTicksLimit:6 }
+      scales:{
+        x:{
+          grid:{display:false},
+          border:{display:false},
+          ticks:{color:'#aeaeb2',font:{family:'DM Sans',size:10},maxTicksLimit:6}
         },
-        y: {
-          min: Math.min(...vals) - 0.5,
-          max: Math.max(...vals) + 0.5,
-          grid: { color:'rgba(0,0,0,0.04)' },
-          border: { display:false },
-          ticks: { color:'#aeaeb2', font:{family:'DM Sans',size:10}, callback: v=>v.toFixed(1)+' kg', maxTicksLimit:4 }
+        y:{
+          min:Math.min(...vals)-0.5,
+          max:Math.max(...vals)+0.5,
+          grid:{color:'rgba(0,0,0,0.04)'},
+          border:{display:false},
+          ticks:{color:'#aeaeb2',font:{family:'DM Sans',size:10},callback:v=>v.toFixed(1)+' kg',maxTicksLimit:4}
         }
       }
     }
   });
 }
 
+// ── RENDER ────────────────────────────────────────────
 function render() {
-  const sorted = [...data.entries].sort((a,b) => a.date.localeCompare(b.date));
+  const sorted = [...entries].sort((a,b)=>a.date.localeCompare(b.date));
 
   // Date
-  const now = new Date();
   document.getElementById('subdate').textContent =
-    now.toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'long'});
+    new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
 
   // Streak
   document.getElementById('streakNum').textContent = calcStreak();
@@ -763,94 +834,92 @@ function render() {
   if (sorted.length) {
     const last = sorted[sorted.length-1].weight;
     document.getElementById('statLast').innerHTML = `${fmt(last)}<sup> kg</sup>`;
-    if (sorted.length >= 2) {
+    if (sorted.length>=2) {
       const prev = sorted[sorted.length-2].weight;
-      const d = last - prev;
-      const sign = d >= 0 ? '+' : '';
-      const cls = d >= 0 ? 'up' : 'down';
+      const d = last-prev;
+      const sign = d>=0?'+':'';
+      const cls = d>=0?'up':'down';
       document.getElementById('statLastDelta').innerHTML =
         `<div class="delta-tag ${cls}">${sign}${fmt(d)} kg</div>`;
-    } else document.getElementById('statLastDelta').innerHTML = '';
+    } else document.getElementById('statLastDelta').innerHTML='';
   } else {
-    document.getElementById('statLast').innerHTML = '—';
-    document.getElementById('statLastDelta').innerHTML = '';
+    document.getElementById('statLast').innerHTML='—';
+    document.getElementById('statLastDelta').innerHTML='';
   }
 
   // Weekly avg
-  const cut7 = new Date(); cut7.setDate(cut7.getDate()-7);
-  const week = sorted.filter(e => new Date(e.date+'T00:00:00') >= cut7);
+  const cut7=new Date(); cut7.setDate(cut7.getDate()-7);
+  const week=sorted.filter(e=>new Date(e.date+'T00:00:00')>=cut7);
   if (week.length) {
-    const avg = week.reduce((s,e)=>s+e.weight,0)/week.length;
-    document.getElementById('statWeekly').innerHTML = `${fmt(avg)}<sup> kg</sup>`;
-  } else document.getElementById('statWeekly').innerHTML = '—';
+    const avg=week.reduce((s,e)=>s+e.weight,0)/week.length;
+    document.getElementById('statWeekly').innerHTML=`${fmt(avg)}<sup> kg</sup>`;
+  } else document.getElementById('statWeekly').innerHTML='—';
 
-  // Évolution totale (bottom card)
-  if (sorted.length >= 2) {
-    const delta = sorted[sorted.length-1].weight - sorted[0].weight;
-    const sign = delta >= 0 ? '+' : '';
-    const color = delta >= 0 ? 'var(--green)' : 'var(--red)';
-    document.getElementById('evoValue').innerHTML =
-      `<span style="color:${color}">${sign}${fmt(delta)} kg</span>`;
-    document.getElementById('evoLabel').textContent = `Depuis le début · ${sorted.length} mesures`;
+  // Évolution totale
+  if (sorted.length>=2) {
+    const delta=sorted[sorted.length-1].weight-sorted[0].weight;
+    const sign=delta>=0?'+':'';
+    const color=delta>=0?'var(--green)':'var(--red)';
+    document.getElementById('evoValue').innerHTML=`<span style="color:${color}">${sign}${fmt(delta)} kg</span>`;
+    document.getElementById('evoLabel').textContent=`Depuis le début · ${sorted.length} mesures`;
   } else {
-    document.getElementById('evoValue').innerHTML = '—';
-    document.getElementById('evoLabel').textContent = 'Évolution totale';
+    document.getElementById('evoValue').innerHTML='—';
+    document.getElementById('evoLabel').textContent='Évolution totale';
   }
 
   // Target ring
-  if (data.target) {
-    document.getElementById('targetInput').value = data.target;
+  if (target) {
+    document.getElementById('targetInput').value=target;
     if (sorted.length) {
-      const start = sorted[0].weight, last = sorted[sorted.length-1].weight;
-      const total = data.target - start, done = last - start;
-      const pct = total !== 0 ? Math.min(100, Math.max(0, (done/total)*100)) : 100;
-      document.getElementById('ringFill').style.strokeDashoffset = 220 - (220*pct/100);
-      document.getElementById('ringPct').textContent = Math.round(pct) + '%';
-      const rem = Math.abs(data.target - last);
-      document.getElementById('progressTitle').textContent = 'En bonne voie 💪';
-      document.getElementById('progressSub').innerHTML =
-        `Objectif <strong>${fmt(data.target)} kg</strong> — encore <strong>${fmt(rem)} kg</strong>`;
+      const start=sorted[0].weight, last=sorted[sorted.length-1].weight;
+      const total=target-start, done=last-start;
+      const pct=total!==0?Math.min(100,Math.max(0,(done/total)*100)):100;
+      document.getElementById('ringFill').style.strokeDashoffset=220-(220*pct/100);
+      document.getElementById('ringPct').textContent=Math.round(pct)+'%';
+      const rem=Math.abs(target-last);
+      document.getElementById('progressTitle').textContent='En bonne voie 💪';
+      document.getElementById('progressSub').innerHTML=
+        `Objectif <strong>${fmt(target)} kg</strong> — encore <strong>${fmt(rem)} kg</strong>`;
     } else {
-      document.getElementById('ringFill').style.strokeDashoffset = 220;
-      document.getElementById('ringPct').textContent = '0%';
-      document.getElementById('progressTitle').textContent = `Objectif : ${fmt(data.target)} kg`;
-      document.getElementById('progressSub').textContent = 'Commence à logger pour voir ta progression.';
+      document.getElementById('ringFill').style.strokeDashoffset=220;
+      document.getElementById('ringPct').textContent='0%';
+      document.getElementById('progressTitle').textContent=`Objectif : ${fmt(target)} kg`;
+      document.getElementById('progressSub').textContent='Commence à logger pour voir ta progression.';
     }
   } else {
-    document.getElementById('ringFill').style.strokeDashoffset = 220;
-    document.getElementById('ringPct').textContent = '—';
-    document.getElementById('progressTitle').textContent = 'Définis ton objectif';
-    document.getElementById('progressSub').textContent = 'Indique ton poids cible pour suivre ta progression.';
+    document.getElementById('ringFill').style.strokeDashoffset=220;
+    document.getElementById('ringPct').textContent='—';
+    document.getElementById('progressTitle').textContent='Définis ton objectif';
+    document.getElementById('progressSub').textContent='Indique ton poids cible pour suivre ta progression.';
   }
 
   // Chart
   renderChart();
 
   // History
-  const hist = [...data.entries].sort((a,b) => b.date.localeCompare(a.date));
-  const list = document.getElementById('historyList');
-
+  const hist=[...entries].sort((a,b)=>b.date.localeCompare(a.date));
+  const list=document.getElementById('historyList');
   if (!hist.length) {
-    list.innerHTML = `<div class="empty-state"><div class="icon">📋</div>Aucune entrée pour l'instant.<br>Commence à logger ton poids !</div>`;
+    list.innerHTML=`<div class="empty-state"><div class="icon">📋</div>Aucune entrée pour l'instant.<br>Commence à logger ton poids !</div>`;
     return;
   }
 
-  const weights = hist.map(e=>e.weight);
-  const minW = Math.min(...weights), maxW = Math.max(...weights);
+  const weights=hist.map(e=>e.weight);
+  const minW=Math.min(...weights), maxW=Math.max(...weights);
 
-  list.innerHTML = hist.map((e,i) => {
-    const d = new Date(e.date+'T00:00:00');
-    const day = d.getDate();
-    const month = d.toLocaleDateString('fr-FR',{month:'short'}).replace('.','');
-    const prev = hist[i+1];
-    let deltaHtml = '';
+  list.innerHTML=hist.map((e,i)=>{
+    const d=new Date(e.date+'T00:00:00');
+    const day=d.getDate();
+    const month=d.toLocaleDateString('fr-FR',{month:'short'}).replace('.','');
+    const prev=hist[i+1];
+    let deltaHtml='';
     if (prev) {
-      const diff = e.weight - prev.weight;
-      const sign = diff >= 0 ? '+' : '';
-      const color = diff >= 0 ? 'var(--green)' : 'var(--red)';
-      deltaHtml = `<div style="font-size:0.72rem;font-weight:500;color:${color}">${sign}${fmt(diff)}</div>`;
+      const diff=e.weight-prev.weight;
+      const sign=diff>=0?'+':'';
+      const color=diff>=0?'var(--green)':'var(--red)';
+      deltaHtml=`<div style="font-size:0.72rem;font-weight:500;color:${color}">${sign}${fmt(diff)}</div>`;
     }
-    const pct = maxW === minW ? 50 : ((e.weight-minW)/(maxW-minW))*100;
+    const pct=maxW===minW?50:((e.weight-minW)/(maxW-minW))*100;
     return `<div class="history-item">
       <div class="hist-date-col">
         <div class="hist-day">${day}</div>
@@ -866,13 +935,46 @@ function render() {
   }).join('');
 }
 
-document.getElementById('btnLog').addEventListener('click', logWeight);
+// ── INPUT GUARDS ──────────────────────────────────────
+const weightInput = document.getElementById('weightInput');
 
-document.getElementById('targetInput').addEventListener('keydown', e => {
-  if (e.key === 'Enter') setTarget();
+weightInput.addEventListener('keydown', function(e) {
+  if (e.key==='Enter') { logWeight(); return; }
+  if (['Backspace','Delete','ArrowLeft','ArrowRight','Tab','Home','End'].includes(e.key)) return;
+  if (/^\d$/.test(e.key)) return;
+  if ((e.key===','||e.key==='.') && !this.value.includes('.')&&!this.value.includes(',')) return;
+  e.preventDefault();
 });
 
-render();
+weightInput.addEventListener('input', function() {
+  let v=this.value.replace(/[^\d.,]/g,'');
+  let first=v.search(/[.,]/);
+  if (first!==-1) {
+    let before=v.slice(0,first+1);
+    let after=v.slice(first+1).replace(/[.,]/g,'');
+    v=before+after;
+  }
+  if (this.value!==v) this.value=v;
+});
+
+document.getElementById('btnLog').addEventListener('click', logWeight);
+document.getElementById('targetInput').addEventListener('keydown', e=>{ if(e.key==='Enter') setTarget(); });
+
+// ── INIT ──────────────────────────────────────────────
+(async () => {
+  try {
+    await loadAll();
+  } catch(e) {
+    toast('Erreur de connexion à la base', true);
+    console.error(e);
+  } finally {
+    render();
+    const overlay = document.getElementById('loadingOverlay');
+    overlay.classList.add('hidden');
+    setTimeout(()=>overlay.remove(), 500);
+  }
+})();
 </script>
 </body>
 </html>
+
